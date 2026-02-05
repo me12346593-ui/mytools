@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2026 决策判定器（严模式B：12问追问）</title>
+  <style>
+    :root { --bg:#0b0d10; --card:#12161c; --muted:#7f8a99; --txt:#e9eef5; --line:#212a35; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+         background:linear-gradient(180deg,#0b0d10,#0a0c0f); color:var(--txt);}
+    .wrap{max-width:1040px;margin:32px auto;padding:0 16px;}
+    h1{font-size:22px;margin:0 0 6px;}
+    .sub{color:var(--muted);margin:0 0 18px;font-size:13px;line-height:1.5}
+    .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:14px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+    label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
+    textarea,input,select{width:100%;background:#0f1318;border:1px solid #243041;color:var(--txt);
+                          border-radius:10px;padding:10px;font-size:14px;outline:none}
+    textarea{min-height:120px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;border:1px solid var(--line);
+          font-size:12px;color:var(--muted);margin-right:8px;margin-bottom:6px}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    button{background:#1b2430;border:1px solid #2b394d;color:var(--txt);border-radius:10px;
+           padding:10px 12px;font-size:14px;cursor:pointer}
+    button:hover{filter:brightness(1.08)}
+    .result{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+    .lamp{display:flex;gap:10px;align-items:center}
+    .dot{width:12px;height:12px;border-radius:50%}
+    .green{background:#2ecc71}
+    .yellow{background:#f1c40f}
+    .red{background:#e74c3c}
+    .score{color:var(--muted);font-size:12px}
+    .list{margin:10px 0 0;padding-left:18px;color:#d9e2ee}
+    .muted{color:var(--muted)}
+    code{background:#0f1318;border:1px solid var(--line);padding:2px 6px;border-radius:8px}
+    .qblock{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0f1318;margin-top:10px}
+    .qtitle{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .qtitle b{font-size:14px}
+    .qhelp{font-size:12px;color:var(--muted)}
+    .yn{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .yn button{padding:8px 10px;font-size:13px}
+    .tag{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:3px 8px;border-radius:999px}
+    .split{height:1px;background:var(--line);margin:12px 0}
+    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+         background:#0b0d10;border:1px solid var(--line);padding:2px 6px;border-radius:8px;color:#cfe2ff}
+  
+/* compact switch */
+.switchRow{justify-content:space-between;align-items:center}
+.switchText{display:flex;flex-direction:column;gap:2px;min-width:0}
+.switchTitle{font-size:13px;color:var(--text);font-weight:600}
+.switchHint{font-size:12px;color:var(--muted);line-height:1.25}
+.switch{position:relative;display:inline-block;width:44px;height:24px;flex:0 0 auto}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#2b2f36;border:1px solid #3a404b;transition:.2s;border-radius:999px}
+.slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:2.5px;background:#cbd5e1;transition:.2s;border-radius:50%}
+.switch input:checked + .slider{background:#1e293b;border-color:#334155}
+.switch input:checked + .slider:before{transform:translateX(20px)}
+
+.qmeta{margin-top:10px;font-size:14px;color:var(--muted);} .qmeta b{color:var(--text);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>2026 决策判定器（严模式 B：12问追问）</h1>
+  <p class="sub">
+    底座：<span class="pill">火为用</span><span class="pill">金为喜</span><span class="pill">木为忌</span><span class="pill">水为变量</span>
+    <span class="pill">信息污染=短测不绑定</span><br>
+    用法：写清楚问题 → 选场景与闭环 → 点 <span class="kbd">开始追问</span>（12题）→ 自动判定 绿/黄/红 + 命中红线 + 动作清单。
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <label>问题描述（越具体越好：你要什么、对方要什么、资源/钱/权限/时间线）</label>
+      <textarea id="desc" placeholder="例：某人要做联名店，要求我提供供应链+客户数据，他负责运营，但账目他管..."></textarea>
+
+      <div class="row">
+        <div>
+          <label>场景类型</label>
+          <select id="scene">
+            <option value="cooperate">合作/合伙</option>
+            <option value="invest">投资/入股/理财</option>
+            <option value="hire">招人/授权/店长主理</option>
+            <option value="expand">扩张/开店/重资产投入</option>
+            <option value="relationship">关系/边界/名分事件</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div>
+          <label>闭环周期（你多久能知道这件事成不成）</label>
+          <select id="cycle">
+            <option value="lt30">≤30天可验证</option>
+            <option value="lt90">31–90天可验证</option>
+            <option value="gt90">>90天才知道结果</option>
+            <option value="unknown">不确定</option>
+          </select>
+      <div class="row" style="align-items:center">
+        <input type="checkbox" id="astro" checked style="display:none">
+</div>
+      </div>
+
+
+        </div>
+      </div>
+
+      <div class="split"></div>
+
+      <div class="qtitle">
+        <b>对话式追问（12题）</b>
+        <span class="tag" id="progress">未开始</span>
+      </div>
+      <div class="qhelp">每题只点“是/否/不确定”。严模式会更苛刻：一旦命中红线，默认先防翻车。</div>
+
+      <div id="qbox" class="qblock">
+        <div id="qtext" class="muted">点击“开始追问”。</div>
+        <div class="yn" id="yn" style="display:none;">
+          <button onclick="answer('yes')">是</button>
+          <button onclick="answer('no')">否</button>
+          <button onclick="answer('unk')">不确定</button>
+        </div>
+      </div>
+
+      <div class="btns">
+        <button onclick="startGuided()">开始追问</button>
+        <button onclick="finishEarly()">直接判定（跳过追问）</button>
+        <button onclick="resetAll()">清空</button>
+        <button onclick="copyReport()">复制报告</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="pill">输出区</div>
+      <div class="result" id="out">
+        <div class="muted">完成追问后显示结果。</div>
+      </div>
+
+      <div class="result">
+        <div class="pill">判定含义</div>
+        <ul class="list">
+          <li><b>绿灯</b>：可做（火点势 + 金成器）。</li>
+          <li><b>黄灯</b>：只允许<b>短测</b>（7/14/30天）+ 三指标裁决。</li>
+          <li><b>红灯</b>：先金化/隔离水变量/不绑定；否则高概率触发木象/水调度/信息污染。</li>
+        </ul>
+      </div>
+
+      <div class="result">
+        <div class="pill">你要的“严”在这</div>
+        <div class="muted">
+          追问把模糊叙事拆成：<b>权责</b>、<b>钱路</b>、<b>闭环</b>、<b>绑定</b>、<b>直觉冲突</b>。<br>
+          命中木/水/污染任一高危，会优先给红灯或黄灯+短测框架。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function get(id){ return document.getElementById(id); }
+function escapeHtml(str){ return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function cycleRisk(){
+  const v = get('cycle').value;
+  if(v==='lt30') return 0;
+  if(v==='lt90') return 1;
+  if(v==='gt90') return 3;
+  return 2; // unknown
+}
+function sceneBias(){
+  const s = get('scene').value;
+  if(s==='invest') return {m:1,w:2,i:1};
+  if(s==='cooperate') return {m:2,w:1,i:1};
+  if(s==='hire') return {m:2,w:0,i:1};
+  if(s==='expand') return {m:1,w:2,i:0};
+  if(s==='relationship') return {m:3,w:0,i:2};
+  return {m:0,w:0,i:0};
+}
+function ans(id){
+  const v = (state && state.answers) ? state.answers[id] : null;
+  return v || 'unk'; // 'yes' | 'no' | 'unk'
+}
+function isYes(id){ return ans(id)==='yes'; }
+
+/**
+ * 印占偏置（仅你的盘）
+ * 目的：把“盘面雷区/顺区”转成可计算的加权，不替代12问，只做偏置。
+ * 输出：{m,w,i, notes[]}
+ */
+function astroBias(desc){
+  try{
+    const box = get('astro');
+    if(!box || !box.checked) return {m:0,w:0,i:0, notes:[]};
+  }catch(e){ return {m:0,w:0,i:0, notes:[]}; }
+
+  const notes = [];
+  let dm=0, dw=0, di=0;
+
+  // 6宫偏置：边界/钱路/绑定 → 更容易进入拉扯与程序消耗
+  const hit6 = isYes('M1') || isYes('W1') || isYes('W4') || isYes('I3');
+  if(hit6){
+    if(isYes('M1')) dm += 1;
+    if(isYes('W1')) dw += 1;
+    if(isYes('W4')) dw += 1;
+    if(isYes('I3')) di += 1;
+    notes.push('6宫偏置：边界/钱路/绑定触发→更易拉扯与程序消耗（先金化/写死退出）。');
+  }
+
+  // 8宫偏置：灰度/牵连/黑天鹅（以“钱路多线/不可审计 + 描述关键词”识别）
+  const kw8 = /(放贷|贷款|借贷|民间|现金|过桥|高利|抽成|返点|对公不便|私转|灰色|洗钱|担保|抵押)/;
+  const hit8 = isYes('W4') || kw8.test(desc||'');
+  if(hit8){
+    di += 2;
+    notes.push('8宫偏置：灰度/牵连/黑天鹅概率↑（不碰资金流/只对公/不挂名/不授权）。');
+  }
+
+  // 12宫金星偏置：一次性交付/幕后价值/知识系统（前提：不多线钱路、不长期绑定）
+  const kw12 = /(咨询|培训|课程|系统|SOP|方案|设计|策划|知识付费|风水|诊断|顾问)/;
+  const hit12 = kw12.test(desc||'') && !isYes('W4') && !isYes('I3');
+  if(hit12){
+    dm -= 1; dw -= 1; di -= 1;
+    notes.push('12宫金星偏置：一次性“交付/幕后价值”顺势→可降低耗损（仍需单线财务）。');
+  }
+
+  // 水星强偏置：能短闭环、用交付压解释成本 → 降低污染分
+  const c = cycleRisk();
+  const hitMercury = (c===0) && !isYes('I2') && !isYes('I3');
+  if(hitMercury){
+    di -= 1;
+    notes.push('水星偏置：≤30天可验证且少解释→可用“短测+验收清单”压风险。');
+  }
+
+  return {m:dm, w:dw, i:di, notes};
+}
+
+/**
+ * 12问结构：
+ * - 木(权责/规则/核心交出) 4题
+ * - 水(回款/预付压库/托底/财务路径) 4题
+ * - 污染(直觉冲突/解释成本/绑定/修复循环) 4题
+ *
+ * 每题映射到 m/w/i 分数。
+ * yes=加2，unk=加1，no=加0（严模式）
+ */
+const QUESTIONS = [
+  {id:'M1', group:'m', text:'这件事的权责边界现在是否不清晰？（谁拍板/谁签字/谁管钱/谁能打折）', w:2},
+  {id:'M2', group:'m', text:'对方是否更强调关系/资源/圈层，而不是产品与流程交付？', w:2},
+  {id:'M3', group:'m', text:'是否要求你交出核心：核心客户/供应链/话语权/关键岗位？', w:2},
+  {id:'M4', group:'m', text:'是否存在规则陷阱：义务模糊但惩罚明确，或高度受平台/物业/证照不确定影响？', w:2},
+
+  {id:'W1', group:'w', text:'回款路径是否不可控？（账期长/靠对方信用/靠政策/容易追款）', w:2},
+  {id:'W2', group:'w', text:'是否需要预付压库/一次性重投入，且资金会被锁住？', w:2},
+  {id:'W3', group:'w', text:'这件事若不顺，你是否会被迫用主盘托底？（你兜底/补现金/补信用）', w:2},
+  {id:'W4', group:'w', text:'财务路径是否可能多线/多人经手/不可审计？（你很难一眼看穿钱路）', w:2},
+
+  {id:'I1', group:'i', text:'你的直觉是否已经告诉你“可能会翻车/有危险”，但你仍想推进？', w:2},
+  {id:'I2', group:'i', text:'你是否已经在花大量时间解释/证明，而不是推进可验证结果？', w:2},
+  {id:'I3', group:'i', text:'对方是否希望长期绑定/排他/锁死，而不是短测？', w:2},
+  {id:'I4', group:'i', text:'你是否容易进入“修复—观察—再修复”循环（即便流程被脏了也不切）？', w:2},
+];
+const Q_META = {
+  "M1": {
+    "tags": [
+      "人格",
+      "印占"
+    ],
+    "strict": "是=高风险"
+  },
+  "M2": {
+    "tags": [
+      "人格",
+      "印占"
+    ],
+    "strict": "是=高风险"
+  },
+  "M3": {
+    "tags": [
+      "人格",
+      "印占"
+    ],
+    "strict": "是=红线(直接否)"
+  },
+  "M4": {
+    "tags": [
+      "人格",
+      "印占"
+    ],
+    "strict": "是=红线(直接否)"
+  },
+  "W1": {
+    "tags": [
+      "财务",
+      "通用"
+    ],
+    "strict": "是=高风险"
+  },
+  "W2": {
+    "tags": [
+      "财务",
+      "通用"
+    ],
+    "strict": "是=高风险"
+  },
+  "W3": {
+    "tags": [
+      "财务",
+      "通用"
+    ],
+    "strict": "是=红线(直接否)"
+  },
+  "W4": {
+    "tags": [
+      "财务",
+      "通用"
+    ],
+    "strict": "是=红线(直接否)"
+  },
+  "I1": {
+    "tags": [
+      "人格",
+      "印占"
+    ],
+    "strict": "是=红线(直接否)"
+  },
+  "I2": {
+    "tags": [
+      "人格",
+      "印占"
+    ],
+    "strict": "是=高风险"
+  },
+  "I3": {
+    "tags": [
+      "人格",
+      "印占"
+    ],
+    "strict": "是=中风险"
+  },
+  "I4": {
+    "tags": [
+      "人格",
+      "印占"
+    ],
+    "strict": "是=中风险"
+  }
+};
+
+
+const SCENE_Q_TEXT = {
+  invest: { // 财务/投资
+    M1: "是否存在“看不见的条款/对手盘”（口头承诺>合同，或关键点写不进纸面）？",
+    M2: "是否有“高杠杆/高波动”因素（借贷、回购、担保、不可控外部政策/行情）？",
+    M3: "是否存在“资金链/回款不确定”或现金流断点（≤30天就会暴露）？",
+    M4: "是否存在“价格/估值/期限”三者不匹配（便宜但久，快但贵，或承诺回收却无机制）？",
+    W1: "你是否已明确：最坏情况的止损线/退出条件（写进条款）？",
+    W2: "你是否能拿到关键数据的原始凭证（流水/报表/合同/担保链）而非转述？",
+    W3: "你是否能把风险拆成小额/分期/可回收，而不是一次性梭哈？",
+    W4: "你是否容易被“短期收益”诱导忽略尾部风险（黑天鹅）？",
+    I1: "你是否已经投入沉没成本（钱/面子/承诺），导致难以按规则退出？",
+    I2: "你是否会为了“证明自己判断对”而加码，而不是复盘？",
+    I3: "你是否把希望押在别人兑现（而不是机制兑现）？",
+    I4: "这件事是否需要你频繁盯盘/救火（消耗注意力）？"
+  },
+  partner: { // 合作/合伙
+    M1: "是否存在“权责不对等”（你承担结果，别人掌控关键资源/话语权）？",
+    M2: "是否有“口头承诺>书面机制”（关键边界写不进合同）？",
+    M3: "是否存在第三方变量（贷款、人情、渠道、灰色关系）牵连你？",
+    M4: "是否存在“退出/分手成本高”（分账不清、资产归属不明、交接难）？",
+    W1: "是否已把：权责/分钱/验收/违约/退出写清，并能执行？",
+    W2: "对方是否愿意在关键点让你可验证（数据、权限、对账）？",
+    W3: "你是否能把合作拆成试运行/小单验证，而非一次性绑定？",
+    W4: "你是否担心“翻脸”所以不敢把丑话说在前面？",
+    I1: "你是否已经投入情绪/面子/关系，导致不愿按规则说“不”？",
+    I2: "你是否会默认自己兜底（救火、背锅、补漏洞）？",
+    I3: "你是否把关键节点寄托在“对方自觉”而不是SOP？",
+    I4: "这事是否会持续消耗沟通成本（反复解释、扯皮、对账）？"
+  },
+  hire: { // 招聘/用人/管理
+    M1: "是否存在“岗位/考核不清”（导致扯皮、内耗、互相甩锅）？",
+    M2: "是否存在“关键权限/数据”交给不可信的人（不可逆风险）？",
+    M3: "是否存在“人情/关系/裙带”影响用人标准？",
+    M4: "是否存在“可替代性低”（一走就崩、交接不可能）？",
+    W1: "是否能把岗位输出写成SOP+验收标准（可量化）？",
+    W2: "是否能先小周期试用/任务制验证，再给权限/薪酬？",
+    W3: "是否已设置权限最小化与审计（可追责）？",
+    W4: "你是否容易因为“救急”而降低门槛？",
+    I1: "你是否会因为怕麻烦而不及时淘汰不合适的人？",
+    I2: "你是否会亲自兜底（导致团队学不会）？",
+    I3: "你是否把管理当成沟通，而不是机制（流程/奖惩/边界）？",
+    I4: "这件事是否会持续消耗你注意力（天天盯、天天催）？"
+  },
+  expand: { // 扩张/开店/项目
+    M1: "是否存在“租约/成本不可控”（装修、押金、违约、物业）？",
+    M2: "是否存在“回本周期不清/现金流断点”（撑不到验证期）？",
+    M3: "是否依赖单一关键人/关键渠道（断了就停摆）？",
+    M4: "是否存在“合规/邻里/投诉”尾部风险（一次就重伤）？",
+    W1: "是否已把关键成本与回本假设写成表，并做压力测试？",
+    W2: "是否能先做小规模验证（快闪/联营/试营业）再重投？",
+    W3: "是否已有可复制的SOP（人员、供应、定价、复购）？",
+    W4: "你是否容易被“想象中的规模”推着走？",
+    I1: "你是否已经在上一轮投入过多，想靠下一轮翻本？",
+    I2: "你是否会为了速度牺牲质量（后续返工更贵）？",
+    I3: "你是否把关键节点押在外部承诺（资源/扶持/流量）？",
+    I4: "这事是否会让你长期处于救火/加班状态？"
+  },
+  relationship: { // 家庭/伴侣
+    M1: "是否存在“核心事实被隐瞒/反复变更”（信任底座不稳）？",
+    M2: "是否存在“金钱/边界”长期冲突点（谁负责、谁说了算）？",
+    M3: "是否存在第三方介入（家人、前任、债务、人情）？",
+    M4: "是否存在“法律/财务”不可逆后果（资产、孩子、名誉）？",
+    W1: "是否能把边界与规则说清（并能执行），而不是靠忍？",
+    W2: "是否能先拉开距离观察一段时间，再做不可逆决定？",
+    W3: "是否有第三方见证/记录（避免事后扯皮）？",
+    W4: "你是否容易因为内疚/责任把自己绑死？",
+    I1: "你是否已经投入太多时间/面子，导致不敢停？",
+    I2: "你是否会为了短期平静而回避关键问题？",
+    I3: "你是否把改善寄托在对方“变好”，而不是机制？",
+    I4: "这事是否会持续消耗你精力与睡眠？"
+  }
+};
+
+function getActiveQuestions(){
+  const scene = get('scene').value;
+  const o = SCENE_Q_TEXT[scene] || {};
+  return QUESTIONS.map(q => ({...q, text: o[q.id] || q.text}));
+}
+
+let state = {
+  idx: -1,
+  answers: {}, // id -> yes/no/unk
+  running: false,
+  scores: {m:0,w:0,i:0},
+};
+
+function weight(ans){
+  if(ans==='yes') return 2;
+  if(ans==='unk') return 1;
+  return 0;
+}
+
+function startGuided(){
+  // 基本防呆：没描述也能用，但提醒
+  state = { idx: 0, qs: getActiveQuestions(), answers: {}, running: true, scores:{m:0,w:0,i:0} };
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const q = state.qs[state.idx];
+  get('progress').textContent = `第 ${state.idx+1}/12 题`;
+  get('qtext').innerHTML = `<b>${q.text}</b><div class="qmeta">标签：<b>${(Q_META[q.id]?.tags||['通用']).join(' / ')}</b>　|　权重：<b>${q.w}</b>　|　严模式：<b>${Q_META[q.id]?.strict||'是=高风险'}</b></div><div class="muted" style="margin-top:6px">（提示：这里的“严模式”说明的是本题的风险解读口径；真实打分仍以你回答为主）</div>`;
+  get('yn').style.display = 'flex';
+}
+
+function answer(ans){
+  if(!state.running) return;
+  const q = state.qs[state.idx];
+  state.answers[q.id] = ans;
+
+  // 计分
+  state.scores[q.group] += weight(ans) * q.w;
+
+  // 下一题或出结果
+  state.idx += 1;
+  if(state.idx >= state.qs.length){
+    state.running = false;
+    get('yn').style.display = 'none';
+    get('progress').textContent = '已完成';
+    judgeFromGuided();
+  } else {
+    renderQuestion();
+  }
+}
+
+function finishEarly(){
+  // 不做追问时：用“描述+场景+周期”做保守判定（默认黄灯起步）
+  state.running = false;
+  state.answers = {};
+  state.scores = {m:0,w:0,i:0};
+  judgeCore({assumeConservative:true});
+}
+
+function judgeFromGuided(){
+  judgeCore({assumeConservative:false});
+}
+
+function decisionLabel(level){
+  if(level==='green') return '绿灯：可做（火点势 + 金成器）';
+  if(level==='yellow') return '黄灯：只允许短测（7/14/30天）+ 三指标裁决';
+  return '红灯：先金化/隔离水变量/不绑定；否则高概率翻车';
+}
+
+function buildActions(level, mScore, wScore, iScore, shortTest){
+  const a = [];
+  a.push('金锚点：把“谁拍板/谁签字/谁管钱/谁能打折/谁能采购”写死并可审计（别靠信任）。');
+
+  if(mScore>=6){
+    a.push('木象高危：先金化再谈火。先签权限矩阵/对外话语权/退出机制/违约条款；做不到就不做。');
+    a.push('避免交出核心：核心客户/供应链/关键岗位/定价权不外放。');
+  } else if(mScore>=4){
+    a.push('木象中危：允许短测，但试用范围要窄；合同先行，边界先固化。');
+  } else {
+    a.push('木象低危：仍建议补“退出条款 + 权限矩阵”，防后发。');
+  }
+
+  if(wScore>=6){
+    a.push('水变量高危：必须设独立资金池；回款单线；账期/预付/压库设硬上限；不许动用主盘托底。');
+    a.push('闭环要求：≤90天（最好≤30天）可验证；超过就拆里程碑，不达标自动止损。');
+  } else if(wScore>=4){
+    a.push('水变量中危：控制预付/库存，确保可审计；优先缩短回款周期。');
+  } else {
+    a.push('小水可用：保持单线财务；库存/预付设上限。');
+  }
+
+  if(iScore>=6){
+    a.push(`信息污染高危：默认短测 ${shortTest}，到点只看三指标（交付/透明/边界遵守），不达标直接切。`);
+    a.push('禁止“修复—观察—再修复”循环；直觉已知风险仍推进=默认增加风险。');
+  } else if(iScore>=4){
+    a.push(`信息污染中危：短测 ${shortTest} + 三指标裁决；减少解释成本，用交付说话。`);
+  } else {
+    a.push('污染低危：仍建议用“交付/透明/边界”三指标管理预期。');
+  }
+
+  if(level==='green'){
+    a.push('执行顺序：火点势（快速启动）→ 金成器（SOP/审计/复制）→ 土承载（沉淀为资产/系统）。');
+  } else if(level==='yellow'){
+    a.push(`短测协议：写清试用范围、截止日、退出条件；先把风险关在笼子里再试。`);
+  } else {
+    a.push('红灯处理：要么先金化/隔离后再来，要么直接不做（避免木象/水调度/污染）。');
+  }
+  return a;
+}
+
+function buildTextReport(level, mScore, wScore, iScore, shortTest, scene, cycle, desc, actions, hits){
+  const L = level==='green'?'绿灯':(level==='yellow'?'黄灯':'红灯');
+  const lines = [];
+  lines.push(`【判定】${L}`);
+  lines.push(`【场景】${scene}｜【闭环】${cycle}`);
+  lines.push(`【风险分(严模式)】木=${mScore}｜水=${wScore}｜污染=${iScore}｜短测=${shortTest}`);
+  lines.push(`【命中】${hits.length? hits.join('；'):'未明显命中（仍建议金化+单线钱路）'}`);
+  if(desc) lines.push(`【描述】${desc}`);
+  lines.push('【动作】');
+  actions.forEach((x,idx)=>lines.push(`${idx+1}. ${x}`));
+  return lines.join('\\n');
+}
+
+function judgeCore({assumeConservative}){
+  const c = cycleRisk();
+  const b = sceneBias();
+
+  // 基础分：来自追问（0~8 每组），再加场景偏置与周期影响
+  let mScore = state.scores.m + b.m;
+  let wScore = state.scores.w + b.w + c;
+  let iScore = state.scores.i + b.i + (c>=2 ? 1 : 0);
+
+  // 如果跳过追问：保守起步（默认黄灯倾向）
+  if(assumeConservative){
+    mScore += 2;
+    wScore += 2;
+    iScore += 2;
+  }
+
+
+// 描述（用于印占偏置关键词与最终展示）
+const desc = get('desc').value.trim();
+
+// 印占偏置（可关闭）：只做加权，不替代12问
+const ab = astroBias(desc);
+mScore += ab.m; wScore += ab.w; iScore += ab.i;
+mScore = Math.max(0, mScore);
+wScore = Math.max(0, wScore);
+iScore = Math.max(0, iScore);
+
+  // 严模式阈值（比上一版更苛刻）
+  // 单组 >=6 直接红；两组>=5 也红；或总分>=15红
+  const red = (mScore>=6) || (wScore>=6) || (iScore>=6) ||
+              ((mScore>=5) + (wScore>=5) + (iScore>=5) >= 2) ||
+              (mScore + wScore + iScore >= 15);
+
+  // 黄：任一组>=4 或总分>=10
+  const yellow = !red && ((mScore>=4) || (wScore>=4) || (iScore>=4) || (mScore+wScore+iScore>=10));
+
+  const level = red ? 'red' : (yellow ? 'yellow' : 'green');
+
+  const shortTest = (c===0) ? '7天' : (c===1 ? '14天' : '30天');
+
+  const hits = [];
+  if(mScore>=4) hits.push(`木象风险 ${mScore}（≥4需先金化）`);
+  if(wScore>=4) hits.push(`水变量风险 ${wScore}（≥4需隔离+闭环）`);
+  if(iScore>=4) hits.push(`信息污染风险 ${iScore}（≥4需短测不绑定）`);
+  if(ab && ab.notes && ab.notes.length){ hits.push(`印占偏置：${ab.notes.join(' / ')}`); }
+
+  const sceneText = get('scene').options[get('scene').selectedIndex].text;
+  const cycleText = get('cycle').options[get('cycle').selectedIndex].text;
+
+  const actions = buildActions(level, mScore, wScore, iScore, shortTest);
+
+  get('out').innerHTML = `
+    <div class="lamp">
+      <div class="dot ${level}"></div>
+      <div><b>${decisionLabel(level)}</b><div class="score">场景：${sceneText}｜闭环：${cycleText}</div></div>
+    </div>
+    <div style="margin-top:10px">
+      <div class="pill">命中红线</div>
+      <div class="muted">${hits.length? hits.join('；') : '未明显命中（仍建议保持金化与单线财务）。'}</div>
+    </div>
+    <div style="margin-top:10px">
+      <div class="pill">下一步动作</div>
+      <ul class="list">${actions.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul>
+    </div>
+    <div style="margin-top:10px">
+      <div class="pill">你的描述</div>
+      <div class="muted">${desc ? escapeHtml(desc).replace(/\\n/g,'<br>') : '（未填写）'}</div>
+    </div>
+    <div style="margin-top:10px" class="muted">
+      提示：若你感觉“直觉已知风险但仍想推进”，请默认把结果当成 <b>至少黄灯</b> 来执行。
+    </div>
+  `;
+
+  window.__last_report__ = buildTextReport(level, mScore, wScore, iScore, shortTest, sceneText, cycleText, desc, actions, hits);
+}
+
+function resetAll(){
+  get('desc').value = '';
+  get('scene').value='cooperate';
+  get('cycle').value='lt90';
+  get('out').innerHTML = `<div class="muted">完成追问后显示结果。</div>`;
+  get('qtext').innerHTML = `<span class="muted">点击“开始追问”。</span>`;
+  get('yn').style.display = 'none';
+  get('progress').textContent = '未开始';
+  state = { idx: -1, answers: {}, running: false, scores:{m:0,w:0,i:0} };
+  window.__last_report__ = '';
+}
+
+async function copyReport(){
+  const t = window.__last_report__ || '';
+  if(!t){ alert('还没有报告：先完成追问或点“直接判定”。'); return; }
+  try{
+    await navigator.clipboard.writeText(t);
+    alert('已复制到剪贴板');
+  }catch(e){
+    alert('复制失败：浏览器权限限制。你可以手动选中输出区复制。');
+  }
+}
+</script>
+</body>
+</html>
